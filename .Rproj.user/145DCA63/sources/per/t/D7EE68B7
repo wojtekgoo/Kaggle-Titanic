@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1550833250444.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "13|30|33|0|\n35|31|39|0|\n",
+    "hash" : "435507432",
+    "id" : "D7EE68B7",
+    "lastKnownWriteTime" : 1552423413,
+    "last_content_update" : 1552423413414,
+    "path" : "C:/Users/wojtek/Desktop/AI/Kaggle/Titanic - Machine Learning from Disaster/main.R",
+    "project_path" : "main.R",
+    "properties" : {
+        "cursorPosition" : "89,104",
+        "scrollLine" : "66",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
