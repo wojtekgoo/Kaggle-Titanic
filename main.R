@@ -1,6 +1,22 @@
-install.packages("tidyverse")
+# install.packages("tidyverse")
+# install.packages("caret")
+# install.packages("Metrics")
+# install.packages("e1071")
+install.packages("rpart.plot")
+install.packages("ipred")
+install.packages("randomForest")
+
 library(dplyr)
 library(readr)
+library(ggplot2)
+library(caret) # for confusionMatrix
+library(Metrics) # for AUC and other mytrics
+library(e1071)
+library(rpart) # for decision trees
+library(rpart.plot) # to plot decision trees
+library(ipred) # for bagged trees
+library(randomForest)
+
 
 # I added 'Title' columns to the train set with passenger's titles extracted (using Excel's flash fill)
 # load 13 columns, ignore any other entries in the file
@@ -41,6 +57,7 @@ check_missing2 = function(df) {
 
 # check missing values per column
 check_missing(train)
+check_missing(test)
 
 # calc family size and add to data set
 train$Family_size = train$SibSp + train$Parch
@@ -53,7 +70,7 @@ test$Fare_pp = test$Fare / (test$Family_size + 1)
 # check title frequencies and recode them to 4 main categories - this will be age proxy
 recode_titles = function(df) {
   table(df$Title)
-  df$new_titles = recode(df$Title, Capt. = "Mr.", Col. = "Mr.", Don. = "Mr.", Rev. = "Mr.", Dr. = "Mr.", Mme. = "Mrs.", Ms. = "Mrs.", Major. = "Mr.", 
+  df$new_titles = recode(df$Title, Capt. = "Mr.", Col. = "Mr.", Don. = "Mr.", Dona. = "Mrs.", Rev. = "Mr.", Dr. = "Mr.", Mme. = "Mrs.", Ms. = "Mrs.", Major. = "Mr.", 
                             Lady. = "Mrs.", Sir. = "Mr.", Mlle. = "Mr.", Col. = "Mr.", Capt. = "Mr.", "the Countess." = "Mrs.", Jonkheer. = "Mr.")
   table(df$new_titles)
   return(df)
@@ -87,10 +104,66 @@ impute_age = function(df) {
 train = impute_age(train)
 test = impute_age(test)
 
-logit_formula = Survived ~ I(age_all^2) + Sex + Pclass + Family_size + Pclass:Sex + new_titles + Fare_pp
-model = glm(lm_formula, family = "binomial", data = train)
-test$Survived = predict(model, newdata = test, type = "response")
+######################################### LOGIT MODEL #########################################
+
+formula = Survived ~ Sex + I(Age^2) + new_titles
+logit_model = glm(formula, family = "binomial", data = train)
+test$Survived = predict(logit_model, newdata = test, type = "response")
 test$Survived= ifelse(test$Survived >= 0.5, 1, 0)
 
+check_model = function(df, model) {
+  df$pred = predict(model, newdata = df, type = "response")
+  df$pred = ifelse(df$pred >= 0.5, 1, 0)
+  df$pred = as.factor(df$pred)
+  confusionMatrix(data = df$pred, reference = df$Survived)
+}
+
+check_model(train, logit_model)
+auc(actual = train$Survived, predicted = train$pred)
+
+
+######################################### DECISION TREE ########################################
+
+tree_model = rpart(formula, 
+                   data = train,
+                   method = "class", # for classification tree
+                   parms = list(split = "gini")) # split tree based on gini index
+
+train$pred = predict(tree_model,
+                     newdata = train,
+                     type = "class")
+
+confusionMatrix(data = train$pred, reference = train$Survived)
+auc(actual = train$Survived, predicted = train$pred)
+
+plotcp(tree_model)
+print(tree_model$cptable)
+
+# Pruning
+
+cp_opt = tree_model$cptable[3, "CP"]
+tree_model_opt = prune(tree = tree_model, cp = cp_opt)
+
+train$pred_opt = predict(tree_model_opt,
+                     newdata = train,
+                     type = "class")
+
+confusionMatrix(data = train$pred, reference = train$Survived)
+auc(actual = train$Survived, predicted = train$pred)
+
+# no improvement after pruning - why? Also, tree perf same as logit - why?
+# install rplot and do further analysis
+
+######################################### BAGGING ##############################################
+
+# install package
+
+
+
+################################################################################################
+
+
+
 write.csv(file = "TitanicPred-logit.csv", x = select(test, PassengerId, Survived))
+
 
